@@ -1,0 +1,2877 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deutscher Wahlkampf-Simulator</title>
+    <style>
+        :root {
+            --cdu-color: #000000;
+            --spd-color: #E3000F;
+            --gruene-color: #46962b;
+            --fdp-color: #FFED00;
+            --linke-color: #BE3075;
+            --afd-color: #009EE0;
+            --primary-color: #0d47a1;
+            --secondary-color: #f5f5f5;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .panel {
+            background-color: white;
+            border-radius: 5px;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .party-selection {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .party-card {
+            flex: 1;
+            min-width: 200px;
+            border-radius: 5px;
+            padding: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: center;
+        }
+        
+        .party-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .party-card.selected {
+            border: 3px solid white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .party-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .cdu { background-color: var(--cdu-color); color: white; }
+        .spd { background-color: var(--spd-color); }
+        .gruene { background-color: var(--gruene-color); }
+        .fdp { background-color: var(--fdp-color); color: black; }
+        .linke { background-color: var(--linke-color); }
+        .afd { background-color: var(--afd-color); }
+        
+        .resources {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .resource {
+            background-color: var(--secondary-color);
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            min-width: 120px;
+            margin: 0.25rem;
+            text-align: center;
+        }
+        
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .action-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .action-btn:hover {
+            background-color: #0a3880;
+        }
+        
+        .action-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .event-log {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-left: 3px solid #ddd;
+        }
+        
+        .log-entry.important {
+            border-left-color: #e74c3c;
+            background-color: #fcf0f0;
+        }
+        
+        .poll-results {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .poll-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .poll-label {
+            min-width: 80px;
+            font-weight: bold;
+        }
+        
+        .poll-progress {
+            flex-grow: 1;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .poll-percentage {
+            min-width: 50px;
+            text-align: right;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            transition: width 1s ease-in-out;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 5px;
+            padding: 2rem;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .close-btn {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #777;
+        }
+        
+        .tab-container {
+            margin-top: 1rem;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 1rem;
+        }
+        
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom-color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .issue-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .issue-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .issue-card:hover {
+            background-color: #f5f7fa;
+        }
+        
+        .issue-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .issue-description {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .position-slider {
+            margin-top: 1rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .position-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+            font-size: 0.8rem;
+        }
+        
+        .position-value {
+            font-weight: bold;
+        }
+        
+        .position-range {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .position-strength {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        
+        .position-strengthen {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .position-strengthen:hover {
+            background-color: #0a3880;
+        }
+        
+        .states-map {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .state {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+        
+        .state:hover {
+            background-color: #f5f7fa;
+        }
+        
+        .state-name {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        
+        .state-value {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .staff-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .staff-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .staff-avatar {
+            width: 60px;
+            height: 60px;
+            background-color: #ddd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            color: #666;
+        }
+        
+        .staff-name {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        
+        .staff-role {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        
+        .staff-stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.8rem;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-width: 300px;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .election-results {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .winner-banner {
+            background-color: #f8f8f8;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 2px solid #ddd;
+        }
+        
+        .coalition-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .coalition-option {
+            position: relative;
+            padding: 1rem;
+            border-radius: 5px;
+            background-color: #f5f5f5;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .coalition-option:hover {
+            background-color: #e0e0e0;
+        }
+
+        .coalition-option.selected {
+            background-color: #d0e8ff;
+            border: 2px solid #0d47a1;
+        }
+
+        .coalition-option.opposition {
+            background-color: #f5f5f5;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .coalition-option.opposition.selected {
+            background-color: #ffe0e0;
+            border: 2px solid #e74c3c;
+        }
+
+        .coalition-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .leader-badge {
+            background-color: #0d47a1;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .coalition-option h4 {
+            margin: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .party-selection {
+                flex-direction: column;
+            }
+            
+            .resources {
+                flex-direction: column;
+            }
+            
+            .resource {
+                width: 100%;
+            }
+            
+            .actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .issue-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .states-map {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Deutscher Wahlkampf-Simulator</h1>
+        <p>Führe deine Partei zum Sieg bei den Bundestagswahlen</p>
+    </header>
+    
+    <main>
+        <div id="start-screen" class="panel">
+            <h2>Willkommen zum Wahlkampf-Simulator</h2>
+            <p>Wähle deine Partei und starte deine politische Karriere. Führe deinen Wahlkampf, reagiere auf aktuelle Ereignisse, und versuche, die Mehrheit der Wähler zu überzeugen.</p>
+            
+            <div class="party-selection">
+                <div class="party-card cdu" data-party="cdu" onclick="selectParty('cdu')">
+                    <div class="party-icon">CDU</div>
+                    <h3>CDU/CSU</h3>
+                    <p>Konservative Volkspartei mit wirtschaftsfreundlicher Politik</p>
+                </div>
+                <div class="party-card spd" data-party="spd" onclick="selectParty('spd')">
+                    <div class="party-icon">SPD</div>
+                    <h3>SPD</h3>
+                    <p>Sozialdemokratische Partei mit Fokus auf soziale Gerechtigkeit</p>
+                </div>
+                <div class="party-card gruene" data-party="gruene" onclick="selectParty('gruene')">
+                    <div class="party-icon">GRÜ</div>
+                    <h3>Die Grünen</h3>
+                    <p>Umwelt- und klimapolitisch orientierte Partei</p>
+                </div>
+                <div class="party-card fdp" data-party="fdp" onclick="selectParty('fdp')">
+                    <div class="party-icon">FDP</div>
+                    <h3>FDP</h3>
+                    <p>Liberale Partei mit Fokus auf Wirtschaftsfreiheit</p>
+                </div>
+                <div class="party-card linke" data-party="linke" onclick="selectParty('linke')">
+                    <div class="party-icon">LIN</div>
+                    <h3>Die Linke</h3>
+                    <p>Linke Partei mit Fokus auf soziale Gerechtigkeit und Umverteilung</p>
+                </div>
+                <div class="party-card afd" data-party="afd" onclick="selectParty('afd')">
+                    <div class="party-icon">AFD</div>
+                    <h3>AfD</h3>
+                    <p>Rechtskonservative Partei mit nationaler Ausrichtung</p>
+                </div>
+            </div>
+            
+            <div class="settings">
+                <h3>Spieleinstellungen</h3>
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                    <div>
+                        <label for="difficulty">Schwierigkeitsgrad:</label>
+                        <select id="difficulty">
+                            <option value="easy">Leicht</option>
+                            <option value="medium" selected>Mittel</option>
+                            <option value="hard">Schwer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="campaigns">Anzahl der Wahlkämpfe:</label>
+                        <select id="campaigns">
+                            <option value="1">1 Wahl</option>
+                            <option value="3" selected>3 Wahlen</option>
+                            <option value="5">5 Wahlen</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="events">Event-Häufigkeit:</label>
+                        <select id="events">
+                            <option value="low">Niedrig</option>
+                            <option value="medium" selected>Mittel</option>
+                            <option value="high">Hoch</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="realism">Realismus:</label>
+                        <select id="realism">
+                            <option value="arcade">Arcade</option>
+                            <option value="balanced" selected>Ausgewogen</option>
+                            <option value="simulation">Simulation</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="start-game" class="action-btn" style="margin-top: 1rem; width: 100%;" onclick="startGame()">Wahlkampf starten</button>
+        </div>
+        
+        <div id="game-screen" class="game-container" style="display: none;">
+            <div class="dashboard">
+                <div class="main-panel panel">
+                    <div class="party-info">
+                        <h2 id="party-name">CDU/CSU</h2>
+                        <p id="current-turn">Wahlkampf 2025: 18 Monate bis zur Wahl</p>
+                    </div>
+                    
+                    <div class="resources">
+                        <div class="resource">
+                            <div>Budget</div>
+                            <div id="budget">2.500.000 €</div>
+                        </div>
+                        <div class="resource">
+                            <div>Mitglieder</div>
+                            <div id="members">300.000</div>
+                        </div>
+                        <div class="resource">
+                            <div>Umfragewerte</div>
+                            <div id="polls">32%</div>
+                        </div>
+                        <div class="resource">
+                            <div>Medienresonanz</div>
+                            <div id="media">Mittel</div>
+                        </div>
+                        <div class="resource">
+                            <div>Spenden</div>
+                            <div id="donations">+ 125.000 €/Monat</div>
+                        </div>
+                    </div>
+                    
+                    <h3>Aktionen</h3>
+                    <div class="actions">
+                        <button class="action-btn" data-action="campaign" onclick="showActionModal('campaign')">
+                            Wahlkampfveranstaltung
+                            <span>150.000 €</span>
+                        </button>
+                        <button class="action-btn" data-action="ads" onclick="showActionModal('ads')">
+                            Werbekampagne starten
+                            <span>250.000 €</span>
+                        </button>
+                        <button class="action-btn" data-action="policy" onclick="showActionModal('policy')">
+                            Positionspapier verfassen
+                            <span>50.000 €</span>
+                        </button>
+                        <button class="action-btn" data-action="recruit" onclick="showActionModal('recruit')">
+                            Mitgliederrekrutierung
+                            <span>100.000 €</span>
+                        </button>
+                        <button class="action-btn" data-action="scandal" onclick="showActionModal('scandal')">
+                            Skandal bekämpfen
+                            <span>200.000 €</span>
+                        </button>
+                        <button class="action-btn" data-action="fundraiser" onclick="showActionModal('fundraiser')">
+                            Spendengala organisieren
+                            <span>75.000 €</span>
+                        </button>
+                        <button class="action-btn" data-action="debate" onclick="showActionModal('debate')">
+                            TV-Debatte vorbereiten
+                            <span>120.000 €</span>
+                        </button>
+                        <button class="action-btn" data-action="research" onclick="showActionModal('research')">
+                            Meinungsforschung
+                            <span>80.000 €</span>
+                        </button>
+                    </div>
+                    
+                    <div class="tab-container">
+                        <div class="tabs">
+                            <div class="tab active" data-tab="events" onclick="changeTab('events')">Ereignisse</div>
+                            <div class="tab" data-tab="staff" onclick="changeTab('staff')">Personal</div>
+                            <div class="tab" data-tab="issues" onclick="changeTab('issues')">Themen</div>
+                            <div class="tab" data-tab="regions" onclick="changeTab('regions')">Bundesländer</div>
+                        </div>
+                        
+                        <div class="tab-content active" data-tab="events">
+                            <h3>Aktuelle Ereignisse</h3>
+                            <div class="event-log">
+                                <div class="log-entry">Der Wahlkampf hat begonnen. Als erste Amtshandlung hast du ein Wahlkampfteam zusammengestellt.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" data-tab="staff">
+                            <h3>Wahlkampfteam</h3>
+                            <p>Verwalte dein Team und setze ihre Fähigkeiten optimal ein.</p>
+                            
+                            <div class="staff-list">
+                                <div class="staff-card">
+                                    <div class="staff-avatar">PM</div>
+                                    <div class="staff-name">Peter Müller</div>
+                                    <div class="staff-role">Kampagnenleiter</div>
+                                    <div class="staff-stats">
+                                        <span>Strategie: 8</span>
+                                        <span>Medien: 7</span>
+                                    </div>
+                                </div>
+                                <div class="staff-card">
+                                    <div class="staff-avatar">SK</div>
+                                    <div class="staff-name">Sabine Klein</div>
+                                    <div class="staff-role">Pressesprecherin</div>
+                                    <div class="staff-stats">
+                                        <span>Kommunikation: 9</span>
+                                        <span>Krisenmgmt: 6</span>
+                                    </div>
+                                </div>
+                                <div class="staff-card">
+                                    <div class="staff-avatar">TW</div>
+                                    <div class="staff-name">Thomas Weber</div>
+                                    <div class="staff-role">Schatzmeister</div>
+                                    <div class="staff-stats">
+                                        <span>Finanzen: 8</span>
+                                        <span>Organisation: 7</span>
+                                    </div>
+                                </div>
+                                <div class="staff-card">
+                                    <div class="staff-avatar">MH</div>
+                                    <div class="staff-name">Maria Hoffmann</div>
+                                    <div class="staff-role">Social Media</div>
+                                    <div class="staff-stats">
+                                        <span>Digital: 9</span>
+                                        <span>Jugend: 8</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" data-tab="issues">
+                            <h3>Politische Themen</h3>
+                            <p>Positioniere deine Partei zu wichtigen Themen und reagiere auf aktuelle Debatten.</p>
+                            
+                            <div class="issue-grid">
+                                <div class="issue-card" data-issue="economy">
+                                    <div class="issue-title">Wirtschaft & Steuern</div>
+                                    <div class="issue-description">Aktuelle Position: Steuerentlastungen für mittlere Einkommen, Förderung des Mittelstands</div>
+                                </div>
+                                <div class="issue-card" data-issue="environment">
+                                    <div class="issue-title">Umwelt & Klima</div>
+                                    <div class="issue-description">Aktuelle Position: Moderate Klimapolitik mit Fokus auf Innovation statt Verbote</div>
+                                </div>
+                                <div class="issue-card" data-issue="social">
+                                    <div class="issue-title">Soziales & Rente</div>
+                                    <div class="issue-description">Aktuelle Position: Beibehaltung des aktuellen Rentensystems mit kleinen Anpassungen</div>
+                                </div>
+                                <div class="issue-card" data-issue="security">
+                                    <div class="issue-title">Innere Sicherheit</div>
+                                    <div class="issue-description">Aktuelle Position: Stärkung von Polizei und Sicherheitsbehörden</div>
+                                </div>
+                                <div class="issue-card" data-issue="migration">
+                                    <div class="issue-title">Migration</div>
+                                    <div class="issue-description">Aktuelle Position: Gesteuerte Einwanderung nach wirtschaftlichen Kriterien</div>
+                                </div>
+                                <div class="issue-card" data-issue="digital">
+                                    <div class="issue-title">Digitalisierung</div>
+                                    <div class="issue-description">Aktuelle Position: Ausbau der digitalen Infrastruktur, Förderung von Startups</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" data-tab="regions">
+                            <h3>Bundesländer</h3>
+                            <p>Verfolge deine Umfragewerte in den verschiedenen Bundesländern und plane regionale Kampagnen.</p>
+                            
+                            <div class="states-map">
+                                <div class="state">
+                                    <div class="state-name">Bayern</div>
+                                    <div class="state-value">45% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Baden-Württemberg</div>
+                                    <div class="state-value">38% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">NRW</div>
+                                    <div class="state-value">33% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Hessen</div>
+                                    <div class="state-value">35% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Niedersachsen</div>
+                                    <div class="state-value">28% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Rheinland-Pfalz</div>
+                                    <div class="state-value">30% Zustimmung</div>
+                                </div>
+                                <divclass="state">
+                                    <div class="state-name">Sachsen</div>
+                                    <div class="state-value">27% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Brandenburg</div>
+                                    <div class="state-value">22% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Sachsen-Anhalt</div>
+                                    <div class="state-value">25% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Thüringen</div>
+                                    <div class="state-value">24% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Schleswig-Holstein</div>
+                                    <div class="state-value">31% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Saarland</div>
+                                    <div class="state-value">34% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Berlin</div>
+                                    <div class="state-value">18% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Bremen</div>
+                                    <div class="state-value">22% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Hamburg</div>
+                                    <div class="state-value">26% Zustimmung</div>
+                                </div>
+                                <div class="state">
+                                    <div class="state-name">Mecklenburg-Vorpommern</div>
+                                    <div class="state-value">23% Zustimmung</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar panel">
+                    <h3>Aktuelle Umfragen</h3>
+                    <div class="poll-results">
+                        <div class="poll-bar">
+                            <div class="poll-label">CDU/CSU</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar cdu" style="width: 32%;"></div>
+                            </div>
+                            <div class="poll-percentage">32%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">SPD</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar spd" style="width: 25%;"></div>
+                            </div>
+                            <div class="poll-percentage">25%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">Grüne</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar gruene" style="width: 18%;"></div>
+                            </div>
+                            <div class="poll-percentage">18%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">FDP</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar fdp" style="width: 10%;"></div>
+                            </div>
+                            <div class="poll-percentage">10%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">AfD</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar afd" style="width: 10%;"></div>
+                            </div>
+                            <div class="poll-percentage">10%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">Linke</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar linke" style="width: 5%;"></div>
+                            </div>
+                            <div class="poll-percentage">5%</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Kalender</h3>
+                        <div id="calendar-info">
+                            <strong>Monat:</strong> Januar 2025<br>
+                            <strong>Zeit bis zur Wahl:</strong> 18 Monate<br>
+                            <strong>Nächste Debatte:</strong> In 3 Monaten<br>
+                            <strong>Wichtige Ereignisse:</strong> Parteitag in 2 Monaten
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+                        <button id="next-turn" class="action-btn" onclick="nextTurn()">Nächster Monat →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modals -->
+        <div id="event-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Neues Ereignis</h3>
+                    <span class="close-btn" onclick="closeModals()">&times;</span>
+                </div>
+                <div id="event-content">
+                    <!-- Dynamisch befüllt je nach Ereignis -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="action-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="action-title">Aktion durchführen</h3>
+                    <span class="close-btn" onclick="closeModals()">&times;</span>
+                </div>
+                <div id="action-content">
+                    <!-- Dynamisch befüllt je nach Aktion -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="election-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Wahlergebnisse</h3>
+                    <span class="close-btn" onclick="closeModals()">&times;</span>
+                </div>
+                <div class="election-results">
+                    <div class="winner-banner">
+                        <h2>Wahlergebnis 2025</h2>
+                        <h3>CDU/CSU wird stärkste Kraft mit 33.5%</h3>
+                    </div>
+                    
+                    <div class="poll-results">
+                        <div class="poll-bar">
+                            <div class="poll-label">CDU/CSU</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar cdu" style="width: 33.5%;"></div>
+                            </div>
+                            <div class="poll-percentage">33.5%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">SPD</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar spd" style="width: 25.5%;"></div>
+                            </div>
+                            <div class="poll-percentage">25.5%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">Grüne</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar gruene" style="width: 17.8%;"></div>
+                            </div>
+                            <div class="poll-percentage">17.8%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">FDP</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar fdp" style="width: 9.5%;"></div>
+                            </div>
+                            <div class="poll-percentage">9.5%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">AfD</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar afd" style="width: 9.2%;"></div>
+                            </div>
+                            <div class="poll-percentage">9.2%</div>
+                        </div>
+                        <div class="poll-bar">
+                            <div class="poll-label">Linke</div>
+                            <div class="poll-progress">
+                                <div class="progress-bar linke" style="width: 4.5%;"></div>
+                            </div>
+                            <div class="poll-percentage">4.5%</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin-top: 1.5rem;">Koalitionsoptionen</h3>
+                    <div class="coalition-options">
+                        <!-- Dynamisch befüllt je nach Wahlergebnis -->
+                    </div>
+                    
+                    <button id="continue-game" class="action-btn" style="margin-top: 1.5rem; width: 100%;" onclick="continueAfterElection()">Zum nächsten Wahlkampf</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="notification" class="notification"></div>
+    </main>
+    
+    <script>
+        // Globaler Spielzustand
+        const gameState = {
+            selectedParty: null,
+            partyName: "",
+            partyColor: "",
+            currentCampaign: 1,
+            maxCampaigns: 3,
+            monthsToElection: 18,
+            currentMonth: 1,
+            currentYear: 2025,
+            difficulty: "medium",
+            eventFrequency: "medium",
+            isInGovernment: true,
+            isChancellor: false,
+            resources: {
+                budget: 2500000,
+                members: 300000,
+                polls: 32,
+                media: "Mittel",
+                donations: 125000
+            },
+            issues: {
+                economy: { position: 0, strength: 5 },
+                environment: { position: 0, strength: 5 },
+                social: { position: 0, strength: 5 },
+                security: { position: 0, strength: 5 },
+                migration: { position: 0, strength: 5 },
+                digital: { position: 0, strength: 5 }
+            },
+            partyPositions: {
+                cdu: {
+                    economy: 2,
+                    environment: 0,
+                    social: 1,
+                    security: 2,
+                    migration: 1,
+                    digital: 1
+                },
+                spd: {
+                    economy: -1,
+                    environment: 1,
+                    social: 2,
+                    security: 0,
+                    migration: 0,
+                    digital: 0
+                },
+                gruene: {
+                    economy: -1,
+                    environment: 2,
+                    social: 1,
+                    security: -1,
+                    migration: 1,
+                    digital: 1
+                },
+                fdp: {
+                    economy: 2,
+                    environment: 0,
+                    social: -1,
+                    security: 0,
+                    migration: 0,
+                    digital: 2
+                },
+                linke: {
+                    economy: -2,
+                    environment: 1,
+                    social: 2,
+                    security: -2,
+                    migration: 2,
+                    digital: 0
+                },
+                afd: {
+                    economy: 1,
+                    environment: -2,
+                    security: 2,
+                    migration: -2,
+                    social: -1,
+                    digital: -1
+                }
+            },
+            partyNames: {
+                cdu: "CDU/CSU",
+                spd: "SPD",
+                gruene: "Die Grünen",
+                fdp: "FDP",
+                linke: "Die Linke",
+                afd: "AfD"
+            },
+            partySlogans: {
+                cdu: "Für ein starkes Deutschland",
+                spd: "Zeit für mehr Gerechtigkeit",
+                gruene: "Zukunft wird aus Mut gemacht",
+                fdp: "Denken wir neu",
+                linke: "Sozial. Gerecht. Für alle.",
+                afd: "Deutschland, aber normal"
+            },
+            polls: {
+                cdu: 32,
+                spd: 25,
+                gruene: 18,
+                fdp: 10,
+                afd: 10,
+                linke: 5
+            },
+            events: [],
+            staff: [
+                {
+                    name: "Peter Müller",
+                    role: "Kampagnenleiter",
+                    initials: "PM",
+                    skills: {
+                        strategy: 8,
+                        media: 7
+                    }
+                },
+                {
+                    name: "Sabine Klein",
+                    role: "Pressesprecherin",
+                    initials: "SK",
+                    skills: {
+                        communication: 9,
+                        crisis: 6
+                    }
+                },
+                {
+                    name: "Thomas Weber",
+                    role: "Schatzmeister",
+                    initials: "TW",
+                    skills: {
+                        finance: 8,
+                        organization: 7
+                    }
+                },
+                {
+                    name: "Maria Hoffmann",
+                    role: "Social Media",
+                    initials: "MH",
+                    skills: {
+                        digital: 9,
+                        youth: 8
+                    }
+                }
+            ],
+            selectedCoalition: null,
+            isProcessingMonth: false
+        };
+        
+        // Event-Datenbank
+        const events = [
+            {
+                id: "rent-reform",
+                title: "Rentenreform-Debatte",
+                description: "Die Regierung hat einen neuen Vorschlag zur Rentenreform vorgelegt. Wie positionierst du deine Partei zu diesem Thema?",
+                options: [
+                    { id: "support", text: "Unterstützen (Sozialer Fokus)", effect: { social: 1, economy: -1, polls: { spd: 2, gruene: 1, cdu: -1, fdp: -2 } } },
+                    { id: "oppose", text: "Ablehnen (Wirtschaftlicher Fokus)", effect: { social: -1, economy: 1, polls: { fdp: 2, cdu: 1, spd: -1, gruene: -2 } } },
+                    { id: "neutral", text: "Neutral bleiben (Ausgewogen)", effect: { social: 0, economy: 0, polls: { all: 0.5 } } }
+                ]
+            },
+            {
+                id: "climate-package",
+                title: "Neues Klimapaket",
+                description: "Die EU diskutiert ein neues Klimapaket mit strengeren Umweltauflagen. Wie reagierst du?",
+                options: [
+                    { id: "support", text: "Voll unterstützen", effect: { environment: 2, economy: -1, polls: { gruene: 3, spd: 1, fdp: -2, cdu: -1 } } },
+                    { id: "modify", text: "Modifizieren vorschlagen", effect: { environment: 1, economy: 0, polls: { cdu: 1, spd: 1, gruene: -1, fdp: 1 } } },
+                    { id: "oppose", text: "Ablehnen", effect: { environment: -2, economy: 1, polls: { fdp: 2, cdu: 1, gruene: -3, spd: -1 } } }
+                ]
+            },
+            {
+                id: "scandal",
+                title: "Parteispendenskandal",
+                description: "Ein Mitglied deiner Partei wird mit illegalen Spenden in Verbindung gebracht. Wie reagierst du?",
+                options: [
+                    { id: "fire", text: "Sofort ausschließen", effect: { media: 1, budget: -100000, polls: { all: 1 } } },
+                    { id: "investigate", text: "Interne Untersuchung", effect: { media: 0, budget: -50000, polls: { all: -0.5 } } },
+                    { id: "defend", text: "Verteidigen", effect: { media: -2, budget: 0, polls: { all: -2 } } }
+                ]
+            },
+            {
+                id: "industry-crisis",
+                title: "Industriekrise",
+                description: "Eine wichtige Branche in Deutschland steckt in einer Krise. Tausende Arbeitsplätze sind gefährdet.",
+                options: [
+                    { id: "bailout", text: "Staatliche Unterstützung anbieten", effect: { economy: -1, budget: -200000, polls: { spd: 2, linke: 3, fdp: -2 } } },
+                    { id: "market", text: "Dem Markt überlassen", effect: { economy: 1, social: -2, polls: { fdp: 3, cdu: 1, spd: -2, linke: -3 } } },
+                    { id: "compromise", text: "Bedingungen für Hilfen stellen", effect: { economy: 0, social: 0, polls: { cdu: 1, spd: 1, gruene: 1 } } }
+                ]
+            },
+            {
+                id: "migration-debate",
+                title: "Migrationsdebatte",
+                description: "Die Migrationszahlen steigen und lösen eine kontroverse Debatte aus. Welche Position nimmst du ein?",
+                options: [
+                    { id: "open", text: "Offenere Migrationspolitik", effect: { migration: 2, polls: { gruene: 2, linke: 3, spd: 1, cdu: -1, afd: -3 } } },
+                    { id: "strict", text: "Strengere Kontrollen", effect: { migration: -2, polls: { afd: 3, cdu: 2, fdp: 0, gruene: -2, linke: -3 } } },
+                    { id: "balanced", text: "Ausgewogene Position", effect: { migration: 0, polls: { cdu: 1, spd: 1, fdp: 1 } } }
+                ]
+            }
+        ];
+        
+        // Aktionen
+        const actions = {
+            campaign: {
+                title: "Wahlkampfveranstaltung planen",
+                cost: 150000,
+                description: "Organisiere eine Wahlkampfveranstaltung, um Wähler direkt zu erreichen und deine Botschaft zu verbreiten.",
+                options: [
+                    { id: "large", text: "Große Veranstaltung (250.000 €)", effect: { budget: -250000, polls: 1.5, media: 2 } },
+                    { id: "medium", text: "Mittlere Veranstaltung (150.000 €)", effect: { budget: -150000, polls: 1, media: 1 } },
+                    { id: "small", text: "Kleine Veranstaltung (75.000 €)", effect: { budget: -75000, polls: 0.5, media: 0.5 } }
+                ]
+            },
+            ads: {
+                title: "Werbekampagne starten",
+                cost: 250000,
+                description: "Starte eine Werbekampagne in verschiedenen Medien, um deine Bekanntheit zu steigern.",
+                options: [
+                    { id: "tv", text: "TV-Kampagne (300.000 €)", effect: { budget: -300000, polls: 2, media: 2 } },
+                    { id: "digital", text: "Digitale Kampagne (200.000 €)", effect: { budget: -200000, polls: 1.5, media: 1 } },
+                    { id: "print", text: "Printkampagne (150.000 €)", effect: { budget: -150000, polls: 1, media: 0.5 } }
+                ]
+            },
+            policy: {
+                title: "Positionspapier verfassen",
+                cost: 50000,
+                description: "Verfasse ein detailliertes Positionspapier zu einem wichtigen Thema.",
+                options: [
+                    { id: "economy", text: "Wirtschaft & Steuern", effect: { budget: -50000, economy: 1, polls: 0.5 } },
+                    { id: "environment", text: "Umwelt & Klima", effect: { budget: -50000, environment: 1, polls: 0.5 } },
+                    { id: "social", text: "Soziales & Rente", effect: { budget: -50000, social: 1, polls: 0.5 } },
+                    { id: "security", text: "Innere Sicherheit", effect: { budget: -50000, security: 1, polls: 0.5 } },
+                    { id: "migration", text: "Migration", effect: { budget: -50000, migration: 1, polls: 0.5 } }
+                ]
+            },
+            recruit: {
+                title: "Mitgliederrekrutierung",
+                cost: 100000,
+                description: "Starte eine Kampagne zur Gewinnung neuer Parteimitglieder.",
+                options: [
+                    { id: "youth", text: "Junge Menschen (120.000 €)", effect: { budget: -120000, members: 5000, polls: 0.3 } },
+                    { id: "general", text: "Allgemeine Bevölkerung (100.000 €)", effect: { budget: -100000, members: 3000, polls: 0.2 } },
+                    { id: "targeted", text: "Gezielte Gruppen (80.000 €)", effect: { budget: -80000, members: 2000, polls: 0.1 } }
+                ]
+            },
+            scandal: {
+                title: "Skandal bekämpfen",
+                cost: 200000,
+                description: "Ein kleinerer Skandal ist aufgekommen. Wie gehst du damit um?",
+                options: [
+                    { id: "pr", text: "PR-Kampagne (200.000 €)", effect: { budget: -200000, polls: 1, media: 1 } },
+                    { id: "transparency", text: "Transparenz-Offensive (150.000 €)", effect: { budget: -150000, polls: 0.5, media: 0.5 } },
+                    { id: "ignore", text: "Ignorieren (0 €)", effect: { budget: 0, polls: -1, media: -1 } }
+                ]
+            },
+            fundraiser: {
+                title: "Spendengala organisieren",
+                cost: 75000,
+                description: "Organisiere eine Veranstaltung, um Spenden für deine Kampagne zu sammeln.",
+                options: [
+                    { id: "exclusive", text: "Exklusive Gala (100.000 €)", effect: { budget: -100000, donations: 20000, polls: -0.2 } },
+                    { id: "balanced", text: "Ausgewogene Veranstaltung (75.000 €)", effect: { budget: -75000, donations: 15000, polls: 0 } },
+                    { id: "grassroots", text: "Basisorientiert (50.000 €)", effect: { budget: -50000, donations: 10000, polls: 0.2 } }
+                ]
+            },
+            debate: {
+                title: "TV-Debatte vorbereiten",
+                cost: 120000,
+                description: "Bereite dich auf eine anstehende TV-Debatte vor.",
+                options: [
+                    { id: "aggressive", text: "Aggressive Strategie (120.000 €)", effect: { budget: -120000, polls: 1.5, media: 2 } },
+                    { id: "balanced", text: "Ausgewogene Strategie (120.000 €)", effect: { budget: -120000, polls: 1, media: 1 } },
+                    { id: "defensive", text: "Defensive Strategie (120.000 €)", effect: { budget: -120000, polls: 0.5, media: 0.5 } }
+                ]
+            },
+            research: {
+                title: "Meinungsforschung",
+                cost: 80000,
+                description: "Führe Umfragen durch, um die Stimmung der Wähler zu testen.",
+                options: [
+                    { id: "focus", text: "Fokusgruppen (100.000 €)", effect: { budget: -100000, polls: 0.3, security: 0.2, environment: 0.2, social: 0.2, economy: 0.2, migration: 0.2, digital: 0.2 } },
+                    { id: "poll", text: "Repräsentative Umfrage (80.000 €)", effect: { budget: -80000, polls: 0.2 } },
+                    { id: "online", text: "Online-Umfrage (40.000 €)", effect: { budget: -40000, polls: 0.1 } }
+                ]
+            }
+        };
+        
+        // Helper-Funktionen
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+        }
+        
+        function formatNumber(number) {
+            return new Intl.NumberFormat('de-DE').format(number);
+        }
+        
+        function getMonthName(monthNumber) {
+            const months = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+            return months[monthNumber - 1];
+        }
+        
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification show';
+            
+            if (type === 'success') {
+                notification.style.backgroundColor = '#2ecc71';
+            } else if (type === 'error') {
+                notification.style.backgroundColor = '#e74c3c';
+            } else if (type === 'warning') {
+                notification.style.backgroundColor = '#f39c12';
+            } else {
+                notification.style.backgroundColor = '#333';
+            }
+            
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 3000);
+        }
+        
+        function addLogEntry(message, important = false) {
+            const entry = document.createElement('div');
+            entry.className = important ? 'log-entry important' : 'log-entry';
+            entry.textContent = message;
+            const eventLog = document.querySelector('.event-log');
+            eventLog.prepend(entry);
+        }
+        
+        function getIssueName(issueKey) {
+            const names = {
+                economy: 'Wirtschaft & Steuern',
+                environment: 'Umwelt & Klima',
+                social: 'Soziales & Rente',
+                security: 'Innere Sicherheit',
+                migration: 'Migration',
+                digital: 'Digitalisierung'
+            };
+            
+            return names[issueKey];
+        }
+        
+        function updateUI() {
+            // Ressourcen aktualisieren
+            document.getElementById('budget').textContent = formatMoney(gameState.resources.budget);
+            document.getElementById('members').textContent = formatNumber(gameState.resources.members);
+            document.getElementById('polls').textContent = gameState.resources.polls.toFixed(1) + '%';
+            document.getElementById('media').textContent = gameState.resources.media;
+            document.getElementById('donations').textContent = '+ ' + formatMoney(gameState.resources.donations) + '/Monat';
+            
+            // Umfragen aktualisieren
+            const pollBars = document.querySelectorAll('.sidebar .poll-results .poll-bar');
+            let partyIndex = 0;
+            for (const party in gameState.polls) {
+                if (pollBars[partyIndex]) {
+                    const progressBar = pollBars[partyIndex].querySelector('.progress-bar');
+                    const percentage = pollBars[partyIndex].querySelector('.poll-percentage');
+                    
+                    progressBar.style.width = gameState.polls[party].toFixed(1) + '%';
+                    percentage.textContent = gameState.polls[party].toFixed(1) + '%';
+                }
+                partyIndex++;
+            }
+            
+            // Spieler-Partei hervorheben
+            if (gameState.selectedParty) {
+                document.querySelectorAll('.poll-label').forEach(label => {
+                    if (label.textContent === gameState.partyName) {
+                        label.style.fontWeight = 'bold';
+                        label.parentNode.style.border = '2px solid ' + gameState.partyColor;
+                    }
+                });
+            }
+            
+            // Aktuellen Monat und Jahr anzeigen
+            document.getElementById('current-turn').textContent = `Wahlkampf ${gameState.currentYear}: ${gameState.monthsToElection} Monate bis zur Wahl`;
+            
+            // Kalender aktualisieren
+            document.getElementById('calendar-info').innerHTML = `
+                <strong>Monat:</strong> ${getMonthName(gameState.currentMonth)} ${gameState.currentYear}<br>
+                <strong>Zeit bis zur Wahl:</strong> ${gameState.monthsToElection} Monate<br>
+                <strong>Nächste Debatte:</strong> In ${3 - (gameState.currentMonth % 3) || 3} Monaten<br>
+                <strong>Wichtige Ereignisse:</strong> ${gameState.monthsToElection % 6 === 0 ? 'Parteitag diesen Monat' : 'Parteitag in ' + (6 - (gameState.monthsToElection % 6)) + ' Monaten'}
+            `;
+            
+            // Aktionsknöpfe aktivieren/deaktivierenje nach Budget
+            document.querySelectorAll('.actions .action-btn').forEach(btn => {
+                const action = btn.getAttribute('data-action');
+                if (action && actions[action] && gameState.resources.budget < actions[action].cost) {
+                    btn.disabled = true;
+                } else {
+                    btn.disabled = false;
+                }
+            });
+            
+            // Themenpositionen aktualisieren
+            updateIssueDescriptions();
+        }
+        
+        function updateIssueDescriptions() {
+            // Beschreibung für alle Themen aktualisieren
+            document.querySelectorAll('.issue-card').forEach(card => {
+                const issueKey = card.getAttribute('data-issue');
+                if (issueKey && gameState.issues[issueKey]) {
+                    const position = gameState.issues[issueKey].position;
+                    const description = getIssueDescription(issueKey, position);
+                    
+                    // Beschreibung aktualisieren wenn das Element existiert
+                    const descElement = card.querySelector('.issue-description');
+                    if (descElement) {
+                        descElement.textContent = 'Aktuelle Position: ' + description;
+                    }
+                }
+            });
+        }
+        
+        function getIssueDescription(issueKey, position) {
+            // Beschreibung basierend auf der Position
+            const descriptions = {
+                economy: {
+                    '-2': 'Starke staatliche Eingriffe in die Wirtschaft, höhere Steuern für Reiche, Umverteilung',
+                    '-1': 'Mehr Regulierung, leicht höhere Steuern für obere Einkommen',
+                    '0': 'Ausgewogene Wirtschaftspolitik zwischen Markt und Staat',
+                    '1': 'Weniger Regulierung, Steuererleichterungen, mehr Freiheit für Unternehmen',
+                    '2': 'Maximale Marktfreiheit, deutliche Steuersenkungen, minimale Staatseingriffe'
+                },
+                environment: {
+                    '-2': 'Wirtschaftswachstum hat Vorrang vor Umweltschutz',
+                    '-1': 'Pragmatische Umweltpolitik ohne wirtschaftliche Einschränkungen',
+                    '0': 'Balance zwischen Umweltschutz und wirtschaftlichen Interessen',
+                    '1': 'Ambitionierte Klimaziele, Förderung erneuerbarer Energien',
+                    '2': 'Radikaler Umwelt- und Klimaschutz mit tiefgreifenden Reformen'
+                },
+                social: {
+                    '-2': 'Starke Kürzung von Sozialleistungen, mehr Eigenverantwortung',
+                    '-1': 'Moderate Reduzierung staatlicher Unterstützung',
+                    '0': 'Ausgewogene Sozialpolitik',
+                    '1': 'Ausbau des Sozialstaats, höhere Mindestlöhne',
+                    '2': 'Umfassender Sozialstaat, starke Umverteilung'
+                },
+                security: {
+                    '-2': 'Bürgerrechte über alles, starke Einschränkung von Sicherheitsbehörden',
+                    '-1': 'Mehr Datenschutz, weniger Überwachung',
+                    '0': 'Balance zwischen Sicherheit und Freiheit',
+                    '1': 'Mehr Befugnisse für Polizei und Sicherheitsbehörden',
+                    '2': 'Maximale Sicherheit, auch auf Kosten persönlicher Freiheiten'
+                },
+                migration: {
+                    '-2': 'Sehr strenge Einwanderungspolitik, Abschiebungen forcieren',
+                    '-1': 'Restriktive Einwanderungsregeln, Begrenzung der Zuwanderung',
+                    '0': 'Gesteuerte Einwanderung nach wirtschaftlichen Kriterien',
+                    '1': 'Offenere Migrationspolitik mit klaren Regeln',
+                    '2': 'Sehr liberale Einwanderungspolitik, offene Grenzen'
+                },
+                digital: {
+                    '-2': 'Skepsis gegenüber Digitalisierung, strenge Regulierung',
+                    '-1': 'Vorsichtige Digitalisierung mit klaren Grenzen',
+                    '0': 'Ausgewogene Digitalpolitik',
+                    '1': 'Förderung der Digitalisierung in allen Bereichen',
+                    '2': 'Umfassende digitale Transformation, maximale Innovation'
+                }
+            };
+            
+            return descriptions[issueKey][position.toString()];
+        }
+        
+        function getPositionLabels(issueKey) {
+            // Beschriftungen für die Extreme der Skala
+            const labels = {
+                economy: { left: 'Staat', right: 'Markt' },
+                environment: { left: 'Wirtschaft', right: 'Umwelt' },
+                social: { left: 'Eigenverantwortung', right: 'Solidarität' },
+                security: { left: 'Freiheit', right: 'Sicherheit' },
+                migration: { left: 'Restriktiv', right: 'Liberal' },
+                digital: { left: 'Konservativ', right: 'Progressiv' }
+            };
+            
+            return labels[issueKey];
+        }
+        
+        // Event Handler und Spiel-Funktionen
+        function selectParty(party) {
+            // Vorherige Auswahl entfernen
+            document.querySelectorAll('.party-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Neue Auswahl markieren
+            document.querySelector(`.party-card[data-party="${party}"]`).classList.add('selected');
+            
+            // Party im Spielstatus speichern
+            gameState.selectedParty = party;
+            gameState.partyName = gameState.partyNames[party];
+            
+            // Parteifarbe speichern
+            const partyColorVar = `--${party}-color`;
+            gameState.partyColor = getComputedStyle(document.documentElement).getPropertyValue(partyColorVar);
+            
+            // Startknopf aktivieren
+            document.getElementById('start-game').disabled = false;
+            
+            // Parteipositionen laden
+            for (const issue in gameState.partyPositions[party]) {
+                if (gameState.issues[issue]) {
+                    gameState.issues[issue].position = gameState.partyPositions[party][issue];
+                }
+            }
+            
+            // Umfragewerte aktualisieren
+            gameState.resources.polls = gameState.polls[party];
+            
+            showNotification(`Du hast ${gameState.partyName} ausgewählt`, 'success');
+        }
+        
+        function startGame() {
+            if (!gameState.selectedParty) {
+                showNotification('Bitte wähle zuerst eine Partei aus!', 'warning');
+                return;
+            }
+            
+            // Spieleinstellungen laden
+            gameState.difficulty = document.getElementById('difficulty').value;
+            gameState.maxCampaigns = parseInt(document.getElementById('campaigns').value);
+            gameState.eventFrequency = document.getElementById('events').value;
+            
+            // Schwierigkeitsgrad anpassen
+            if (gameState.difficulty === 'hard') {
+                gameState.resources.budget *= 0.8;
+                gameState.resources.polls -= 2;
+            } else if (gameState.difficulty === 'easy') {
+                gameState.resources.budget *= 1.2;
+                gameState.resources.polls += 2;
+            }
+            
+            // UI aktualisieren
+            document.getElementById('party-name').textContent = gameState.partyName;
+            updateUI();
+            
+            // Positions-Slider für die Themen erstellen
+            setupPositionSliders();
+            
+            // Spiel starten
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            
+            // Startmeldung
+            addLogEntry(`Der Wahlkampf hat begonnen. Du führst ${gameState.partyName} in die Bundestagswahl ${gameState.currentYear}.`);
+            
+            // Erstes Ereignis
+            setTimeout(() => {
+                triggerRandomEvent();
+            }, 1000);
+        }
+        
+        function setupPositionSliders() {
+            // Positions-Slider für jedes Thema einfügen
+            document.querySelectorAll('.issue-card').forEach(card => {
+                const issueKey = card.getAttribute('data-issue');
+                if (!issueKey) return;
+                
+                const labels = getPositionLabels(issueKey);
+                
+                // Positionswähler hinzufügen
+                const slider = document.createElement('div');
+                slider.className = 'position-slider';
+                slider.innerHTML = `
+                    <div class="position-labels">
+                        <span class="position-left">${labels.left}</span>
+                        <span class="position-value">Neutral</span>
+                        <span class="position-right">${labels.right}</span>
+                    </div>
+                    <input type="range" min="-2" max="2" value="${gameState.issues[issueKey].position}" class="position-range" data-issue="${issueKey}" oninput="handlePositionChange(this)">
+                    <div class="position-strength">
+                        <span>Themenstärke: ${gameState.issues[issueKey].strength}</span>
+                        <button class="position-strengthen" data-issue="${issueKey}" onclick="handleStrengthening(this)">Stärken</button>
+                    </div>
+                `;
+                
+                card.appendChild(slider);
+            });
+            
+            // Anfangspositionen aktualisieren
+            updatePositionLabelsUI();
+        }
+        
+        function updatePositionLabelsUI() {
+            document.querySelectorAll('.position-range').forEach(rangeInput => {
+                const issueKey = rangeInput.getAttribute('data-issue');
+                const position = parseInt(rangeInput.value);
+                const labels = getPositionLabels(issueKey);
+                
+                // Positionswert als Text
+                let posText;
+                if (position === -2) posText = 'Stark ' + labels.left;
+                else if (position === -1) posText = 'Eher ' + labels.left;
+                else if (position === 0) posText = 'Neutral';
+                else if (position === 1) posText = 'Eher ' + labels.right;
+                else if (position === 2) posText = 'Stark ' + labels.right;
+                
+                // UI aktualisieren
+                const valueLabel = rangeInput.previousElementSibling.querySelector('.position-value');
+                if (valueLabel) {
+                    valueLabel.textContent = posText;
+                }
+            });
+        }
+        
+        function handlePositionChange(element) {
+            const issueKey = element.getAttribute('data-issue');
+            const newPosition = parseInt(element.value);
+            
+            // Position im Spielstatus aktualisieren
+            gameState.issues[issueKey].position = newPosition;
+            
+            // UI aktualisieren
+            updatePositionLabelsUI();
+            updateIssueDescriptions();
+            
+            // Umfragewerte anpassen basierend auf der Positionsänderung
+            updatePollsBasedOnPosition(issueKey, newPosition);
+            
+            // Log-Eintrag
+            addLogEntry(`Du hast die Position zu ${getIssueName(issueKey)} geändert.`);
+            
+            // Spielstatus aktualisieren
+            updateUI();
+        }
+        
+        function updatePollsBasedOnPosition(issueKey, position) {
+            // Auswirkung der Positionsänderung auf die Umfragewerte
+            const impact = 0.2; // Basisauswirkung
+            const strengthMultiplier = gameState.issues[issueKey].strength / 5; // Stärke verstärkt die Auswirkung
+            
+            // Für jede Partei berechnen, wie gut die neue Position zu ihrer Grundhaltung passt
+            for (const party in gameState.polls) {
+                // Parteiposition zu diesem Thema
+                const partyPosition = gameState.partyPositions[party][issueKey];
+                
+                // Differenz zwischen Spieler- und Parteiposition
+                const diff = Math.abs(position - partyPosition);
+                
+                // Auswirkung berechnen
+                let pollChange = 0;
+                
+                if (party === gameState.selectedParty) {
+                    // Eigene Partei - Kernwähler reagieren auf Abweichungen von Parteipositionen
+                    if (diff === 0) {
+                        pollChange = 0.3; // Stärkung der Kernwähler
+                    } else if (diff === 1) {
+                        pollChange = 0; // Keine Änderung bei leichter Abweichung
+                    } else {
+                        pollChange = -0.5; // Verlust bei starker Abweichung
+                    }
+                } else {
+                    // Andere Parteien - können Wähler verlieren, wenn der Spieler ihre Position übernimmt
+                    if (diff === 0) {
+                        pollChange = -0.2; // Spieler nimmt Wähler weg
+                    } else if (diff === 4) {
+                        pollChange = 0.2; // Polarisierung hilft den Gegnern
+                    }
+                }
+                
+                // Auswirkung verstärken basierend auf Themenstärke
+                pollChange *= impact * strengthMultiplier;
+                
+                // Umfragewerte anpassen
+                gameState.polls[party] += pollChange;
+                
+                // Grenzen sicherstellen (0-60%)
+                gameState.polls[party] = Math.max(0, Math.min(60, gameState.polls[party]));
+            }
+            
+            // Spieler-Umfragewert aktualisieren
+            gameState.resources.polls = gameState.polls[gameState.selectedParty];
+        }
+        
+        function handleStrengthening(element) {
+            const issueKey = element.getAttribute('data-issue');
+            const currentStrength = gameState.issues[issueKey].strength;
+            
+            // Themenstärke kann nur erhöht werden, wenn Budget vorhanden
+            const cost = 100000 * (currentStrength / 2);
+            
+            if (gameState.resources.budget >= cost && currentStrength < 10) {
+                // Budget reduzieren
+                gameState.resources.budget -= cost;
+                
+                // Themenstärke erhöhen
+                gameState.issues[issueKey].strength += 1;
+                
+                // Umfragewerte leicht verbessern
+                gameState.polls[gameState.selectedParty] += 0.3;
+                gameState.resources.polls += 0.3;
+                
+                // UI aktualisieren
+                const strengthSpan = element.previousElementSibling;
+                strengthSpan.textContent = `Themenstärke: ${gameState.issues[issueKey].strength}`;
+                
+                // Log-Eintrag
+                addLogEntry(`Du hast die Themenstärke zu ${getIssueName(issueKey)} erhöht.`);
+                
+                // Benachrichtigung
+                showNotification(`Themenstärke zu ${getIssueName(issueKey)} erhöht auf ${gameState.issues[issueKey].strength}`, 'success');
+                
+                // Spielstatus aktualisieren
+                updateUI();
+            } else if (currentStrength >= 10) {
+                showNotification('Maximale Themenstärke bereits erreicht!', 'warning');
+            } else {
+                showNotification(`Nicht genug Budget! Benötigt: ${formatMoney(cost)}`, 'error');
+            }
+        }
+        
+        function changeTab(tabName) {
+            // Aktiven Tab entfernen
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Neuen Tab aktivieren
+            document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+            document.querySelector(`.tab-content[data-tab="${tabName}"]`).classList.add('active');
+        }
+        
+        function nextTurn() {
+            // Verhindert, dass der Button mehrfach geklickt wird
+            if (gameState.isProcessingMonth) return;
+            
+            // Status setzen
+            gameState.isProcessingMonth = true;
+            document.getElementById('next-turn').disabled = true;
+            
+            // Zeit fortschreiten lassen
+            gameState.monthsToElection--;
+            gameState.currentMonth++;
+            
+            if (gameState.currentMonth > 12) {
+                gameState.currentMonth = 1;
+                gameState.currentYear++;
+            }
+            
+            // Monatliche Ressourcen aktualisieren
+            gameState.resources.budget += gameState.resources.donations;
+            
+            // UI aktualisieren
+            updateUI();
+            
+            // Log-Eintrag
+            addLogEntry(`Neuer Monat: ${getMonthName(gameState.currentMonth)} ${gameState.currentYear}. Noch ${gameState.monthsToElection} Monate bis zur Wahl.`);
+            
+            // Zufälliges Ereignis mit Verzögerung
+            const eventDelay = Math.random() < getEventProbability() ? 500 : 0;
+            
+            setTimeout(() => {
+                // Wahlsimulation
+                if (gameState.monthsToElection === 0) {
+                    simulateElection();
+                    showElectionResults();
+                } else {
+                    // Zufälliges Ereignis anzeigen wenn nötig
+                    if (eventDelay > 0) {
+                        triggerRandomEvent();
+                    }
+                    
+                    // Status zurücksetzen
+                    gameState.isProcessingMonth = false;
+                    document.getElementById('next-turn').disabled = false;
+                }
+            }, eventDelay);
+        }
+        
+        function getEventProbability() {
+            // Wahrscheinlichkeit für Ereignisse basierend auf Einstellungen
+            const baseProb = 0.3;
+            
+            switch (gameState.eventFrequency) {
+                case 'low': return baseProb * 0.5;
+                case 'medium': return baseProb;
+                case 'high': return baseProb * 1.5;
+                default: return baseProb;
+            }
+        }
+        
+        function triggerRandomEvent() {
+            // Zufälliges Ereignis auswählen
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+            
+            // Event-Modal anzeigen
+            document.getElementById('event-modal').style.display = 'flex';
+            
+            // Modal-Inhalt füllen
+            const modalContent = document.getElementById('event-content');
+            modalContent.innerHTML = `
+                <h4>${randomEvent.title}</h4>
+                <p>${randomEvent.description}</p>
+                
+                <div style="margin-top: 1rem;">
+                    ${randomEvent.options.map(option => `
+                        <button class="action-btn event-option" data-event="${randomEvent.id}" data-option="${option.id}" style="margin-top: 0.5rem; width: 100%;" onclick="handleEventOption(this)">
+                            ${option.text}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            
+            // Log-Eintrag
+            addLogEntry(`Neues Ereignis: ${randomEvent.title}`, true);
+        }
+        
+        function handleEventOption(element) {
+            const eventId = element.getAttribute('data-event');
+            const optionId = element.getAttribute('data-option');
+            
+            // Event und Option finden
+            const selectedEvent = events.find(event => event.id === eventId);
+            const selectedOption = selectedEvent.options.find(option => option.id === optionId);
+            
+            // Effekte anwenden
+            applyEffects(selectedOption.effect);
+            
+            // UI aktualisieren
+            updateUI();
+            
+            // Modal schließen
+            document.getElementById('event-modal').style.display = 'none';
+            
+            // Log-Eintrag
+            addLogEntry(`Du hast dich bei "${selectedEvent.title}" für "${selectedOption.text}" entschieden.`);
+            
+            // Benachrichtigung
+            showNotification(`Entscheidung getroffen: ${selectedOption.text}`, 'info');
+            
+            // Falls wir im Monats-Prozess sind, nächsten Monat-Button wieder aktivieren
+            if (gameState.isProcessingMonth) {
+                gameState.isProcessingMonth = false;
+                document.getElementById('next-turn').disabled = false;
+            }
+        }
+        
+        function showActionModal(actionType) {
+            const action = actions[actionType];
+            
+            // Action Modal anzeigen
+            document.getElementById('action-modal').style.display = 'flex';
+            
+            // Modal-Titel setzen
+            document.getElementById('action-title').textContent = action.title;
+            
+            // Modal-Inhalt füllen
+            const modalContent = document.getElementById('action-content');
+            modalContent.innerHTML = `
+                <p>${action.description}</p>
+                
+                <div style="margin-top: 1rem;">
+                    ${action.options.map(option => `
+                        <button class="action-btn action-option" data-action="${actionType}" data-option="${option.id}" style="margin-top: 0.5rem; width: 100%;" onclick="handleActionOption(this)">
+                            ${option.text}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function handleActionOption(element) {
+            const actionType = element.getAttribute('data-action');
+            const optionId = element.getAttribute('data-option');
+            
+            // Aktion und Option finden
+            const action = actions[actionType];
+            const option = action.options.find(opt => opt.id === optionId);
+            
+            // Effekte anwenden
+            applyEffects(option.effect);
+            
+            // UI aktualisieren
+            updateUI();
+            
+            // Modal schließen
+            document.getElementById('action-modal').style.display = 'none';
+            
+            // Log-Eintrag
+            addLogEntry(`Du hast die Aktion "${action.title}" mit der Option "${option.text}" durchgeführt.`);
+            
+            // Benachrichtigung
+            showNotification(`Aktion durchgeführt: ${option.text}`, 'success');
+        }
+        
+        function closeModals() {
+            // Alle Modals schließen
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+        
+        function applyEffects(effects) {
+            // Budget-Effekte
+            if (effects.budget) {
+                gameState.resources.budget += effects.budget;
+            }
+            
+            // Mitglieder-Effekte
+            if (effects.members) {
+                gameState.resources.members += effects.members;
+            }
+            
+            // Spenden-Effekte
+            if (effects.donations) {
+                gameState.resources.donations += effects.donations;
+            }
+            
+            // Umfrage-Effekte
+            if (effects.polls) {
+                // Falls spezifische Parteien betroffen sind
+                if (typeof effects.polls === 'object') {
+                    for (const party in effects.polls) {
+                        if (party === 'all') {
+                            // Alle Parteien betroffen
+                            for (const p in gameState.polls) {
+                                if (p === gameState.selectedParty) {
+                                    gameState.polls[p] += effects.polls.all;
+                                    gameState.resources.polls += effects.polls.all;
+                                } else {
+                                    gameState.polls[p] += effects.polls.all / 2;
+                                }
+                            }
+                        } else if (party === gameState.selectedParty) {
+                            // Spielerpartei betroffen
+                            gameState.polls[party] += effects.polls[party];
+                            gameState.resources.polls += effects.polls[party];
+                        } else {
+                            // Andere Partei betroffen
+                            gameState.polls[party] += effects.polls[party];
+                        }
+                    }
+                } else {
+                    // Allgemeiner Umfrage-Effekt nur für Spielerpartei
+                    gameState.polls[gameState.selectedParty] += effects.polls;
+                    gameState.resources.polls += effects.polls;
+                }
+                
+                // Sicherstellen, dass keine Partei unter 0% oder über 60% kommt
+                for (const party in gameState.polls) {
+                    gameState.polls[party] = Math.max(0, Math.min(60, gameState.polls[party]));
+                }
+                
+                // Spieler-Umfragewert aktualisieren
+                gameState.resources.polls = gameState.polls[gameState.selectedParty];
+            }
+            
+            // Medienresonanz-Effekte
+            if (effects.media) {
+                const mediaValues = ["Sehr niedrig", "Niedrig", "Mittel", "Hoch", "Sehr hoch"];
+                const currentIndex = mediaValues.indexOf(gameState.resources.media);
+                let newIndex = currentIndex + effects.media;
+                
+                // Index im gültigen Bereich halten
+                newIndex = Math.max(0, Math.min(mediaValues.length - 1, newIndex));
+                
+                // Medienresonanz aktualisieren
+                gameState.resources.media = mediaValues[newIndex];
+            }
+            
+            // Themen-Effekte
+            for (const issue in gameState.issues) {
+                if (effects[issue]) {
+                    gameState.issues[issue].strength += effects[issue];
+                    gameState.issues[issue].strength = Math.max(1, Math.min(10, gameState.issues[issue].strength));
+                }
+            }
+        }
+        
+        function simulateElection() {
+            // Umfragewerte als Basis nehmen
+            const electionResults = {...gameState.polls};
+            
+            // Zufällige Schwankungen hinzufügen (+/- 2%)
+            for (const party in electionResults) {
+                const swing = (Math.random() * 4) - 2;
+                electionResults[party] = Math.max(0, electionResults[party] + swing);
+            }
+            
+            // Prozente normalisieren auf 100%
+            let total = 0;
+            for (const party in electionResults) {
+                total += electionResults[party];
+            }
+            
+            for (const party in electionResults) {
+                electionResults[party] = parseFloat((electionResults[party] * 100 / total).toFixed(1));
+            }
+            
+            // Ergebnisse im Spielstatus speichern
+            gameState.electionResults = electionResults;
+        }
+        
+        function calculateCoalitions() {
+            const results = gameState.electionResults;
+            const selectedParty = gameState.selectedParty;
+            const coalitions = [];
+            
+            // Parteien über der 5%-Hürde sammeln
+            const qualifiedParties = {};
+            for (const party in results) {
+                if (results[party] >= 5) {
+                    qualifiedParties[party] = results[party];
+                }
+            }
+            
+            // Prüfen, ob die Spielerpartei die 5%-Hürde genommen hat
+            if (!qualifiedParties[selectedParty]) {
+                coalitions.push({
+                    name: "Keine Koalitionsoption",
+                    parties: [selectedParty],
+                    total: results[selectedParty],
+                    playerIsLeader: false,
+                    playerInGovernment: false,
+                    description: "Deine Partei hat die 5%-Hürde nicht geschafft und ist nicht im Bundestag vertreten."
+                });
+                return coalitions;
+            }
+            
+            // Alle möglichen Zweierbündnisse berechnen
+            const possibleTwoPartyCoalitions = [];
+            const allParties = Object.keys(qualifiedParties);
+            
+            for (let i = 0; i < allParties.length; i++) {
+                for (let j = i + 1; j < allParties.length; j++) {
+                    const party1 = allParties[i];
+                    const party2 = allParties[j];
+                    
+                    const total = qualifiedParties[party1] + qualifiedParties[party2];
+                    if (total >= 50) {
+                        possibleTwoPartyCoalitions.push({
+                            parties: [party1, party2],
+                            total: total,
+                            leader: qualifiedParties[party1] > qualifiedParties[party2] ? party1 : party2
+                        });
+                    }
+                }
+            }
+            
+            // Alle möglichen Dreierbündnisse berechnen
+            const possibleThreePartyCoalitions = [];
+            
+            for (let i = 0; i < allParties.length; i++) {
+                for (let j = i + 1; j < allParties.length; j++) {
+                    for (let k = j + 1; k < allParties.length; k++) {
+                        const party1 = allParties[i];
+                        const party2 = allParties[j];
+                        const party3 = allParties[k];
+                        
+                        const total = qualifiedParties[party1] + qualifiedParties[party2] + qualifiedParties[party3];
+                        if (total >= 50) {
+                            // Partei mit den meisten Stimmen wird Koalitionsführer
+                            let leader = party1;
+                            if (qualifiedParties[party2] > qualifiedParties[leader]) leader = party2;
+                            if (qualifiedParties[party3] > qualifiedParties[leader]) leader = party3;
+                            
+                            possibleThreePartyCoalitions.push({
+                                parties: [party1, party2, party3],
+                                total: total,
+                                leader: leader
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Große Koalition (die zwei stärksten Parteien)
+            let sortedParties = Object.entries(qualifiedParties).sort((a, b) => b[1] - a[1]);
+            if (sortedParties.length >= 2) {
+                const party1 = sortedParties[0][0];
+                const party2 = sortedParties[1][0];
+                const total = qualifiedParties[party1] + qualifiedParties[party2];
+                
+                if (total >= 50) {
+                    const coalition = {
+                        name: "Große Koalition",
+                        parties: [party1, party2],
+                        total: total,
+                        playerIsLeader: party1 === selectedParty,
+                        playerInGovernment: party1 === selectedParty || party2 === selectedParty,
+                        leader: party1,
+                        description: "Stabilität, aber schwierige Kompromisse"
+                    };
+                    coalitions.push(coalition);
+                }
+            }
+            
+            // Spezifische Koalitionen mit Namen
+            const coalitionNames = {
+                "cdu,fdp": "Schwarz-Gelb",
+                "cdu,gruene": "Schwarz-Grün",
+                "spd,gruene": "Rot-Grün",
+                "spd,linke": "Rot-Rot",
+                "spd,fdp": "Sozial-Liberal",
+                "gruene,linke": "Grün-Rot",
+                "cdu,spd,gruene": "Kenia (Schwarz-Rot-Grün)",
+                "cdu,gruene,fdp": "Jamaika (Schwarz-Grün-Gelb)",
+                "spd,gruene,fdp": "Ampel (Rot-Grün-Gelb)",
+                "spd,gruene,linke": "Rot-Rot-Grün"
+            };
+            
+            // Koalitionsbeschreibungen
+            const coalitionDescriptions = {
+                "cdu,fdp": "Wirtschaftsliberale Politik mit konservativen Werten",
+                "cdu,gruene": "Konservative Werte mit Umweltfokus",
+                "spd,gruene": "Sozial-ökologische Politik",
+                "spd,linke": "Sozialpolitisch links ausgerichtete Regierung",
+                "spd,fdp": "Sozialer Liberalismus",
+                "gruene,linke": "Stark ökologisch-sozial ausgerichtete Politik",
+                "cdu,spd,gruene": "Breite Mitte mit ökologischem Einschlag",
+                "cdu,gruene,fdp": "Wirtschaftsliberal mit ökologischer Komponente",
+                "spd,gruene,fdp": "Progressive Politik mit wirtschaftsliberalem Einschlag",
+                "spd,gruene,linke": "Links-progressive Ausrichtung mit starkem Umweltfokus"
+            };
+            
+            // Zweierbündnisse hinzufügen
+            possibleTwoPartyCoalitions.forEach(coalition => {
+                const sortedParties = [...coalition.parties].sort();
+                const coalitionKey = sortedParties.join(',');
+                const name = coalitionNames[coalitionKey] || `${gameState.partyNames[sortedParties[0]]}-${gameState.partyNames[sortedParties[1]]}`;
+                const description = coalitionDescriptions[coalitionKey] || "Eine pragmatische Regierungskoalition";
+                
+                coalitions.push({
+                    name: name,
+                    parties: coalition.parties,
+                    total: coalition.total,
+                    playerIsLeader: coalition.leader === selectedParty,
+                    playerInGovernment: coalition.parties.includes(selectedParty),
+                    leader: coalition.leader,
+                    description: description
+                });
+            });
+            
+            // Dreierbündnisse hinzufügen
+            possibleThreePartyCoalitions.forEach(coalition => {
+                const sortedParties = [...coalition.parties].sort();
+                const coalitionKey = sortedParties.join(',');
+                const name = coalitionNames[coalitionKey] || `${gameState.partyNames[sortedParties[0]]}-${gameState.partyNames[sortedParties[1]]}-${gameState.partyNames[sortedParties[2]]}`;
+                const description = coalitionDescriptions[coalitionKey] || "Eine breite Koalition mit verschiedenen politischen Ausrichtungen";
+                
+                coalitions.push({
+                    name: name,
+                    parties: coalition.parties,
+                    total: coalition.total,
+                    playerIsLeader: coalition.leader === selectedParty,
+                    playerInGovernment: coalition.parties.includes(selectedParty),
+                    leader: coalition.leader,
+                    description: description
+                });
+            });
+            
+            // Opposition hinzufügen, falls der Spieler in keiner Koalition vertreten ist
+            if (coalitions.length > 0 && !coalitions.some(c => c.playerInGovernment)) {
+                // Der Spieler ist in der Opposition
+                coalitions.push({
+                    name: "Opposition",
+                    parties: [selectedParty],
+                    total: results[selectedParty],
+                    playerIsLeader: false,
+                    playerInGovernment: false,
+                    leader: null,
+                    description: "Deine Partei ist in der Opposition und versucht, die Regierung zu kontrollieren und eigene Themen zu setzen."
+                });
+            } else if (coalitions.length === 0) {
+                // Keine funktionsfähige Koalition möglich, Minderheitsregierung notwendig
+                const strongestParty = sortedParties[0][0];
+                const isPlayerStrongest = strongestParty === selectedParty;
+                
+                coalitions.push({
+                    name: "Minderheitsregierung",
+                    parties: [strongestParty],
+                    total: results[strongestParty],
+                    playerIsLeader: isPlayerStrongest,
+                    playerInGovernment: isPlayerStrongest,
+                    leader: strongestParty,
+                    description: "Eine schwierige Regierungsform, bei der für jedes Gesetz neue Mehrheiten gefunden werden müssen."
+                });
+                
+                if (!isPlayerStrongest) {
+                    // Spieler ist in der Opposition
+                    coalitions.push({
+                        name: "Opposition",
+                        parties: [selectedParty],
+                        total: results[selectedParty],
+                        playerIsLeader: false,
+                        playerInGovernment: false,
+                        leader: null,
+                        description: "Deine Partei ist in der Opposition und versucht, die Regierung zu kontrollieren und eigene Themen zu setzen."
+                    });
+                }
+            }
+            
+            return coalitions;
+        }
+        
+        function showElectionResults() {
+            // Election Modal anzeigen
+            document.getElementById('election-modal').style.display = 'flex';
+            
+            // Sieger ermitteln
+            let winner = "";
+            let highestVote = 0;
+            
+            for (const party in gameState.electionResults) {
+                if (gameState.electionResults[party] > highestVote) {
+                    highestVote = gameState.electionResults[party];
+                    winner = party;
+                }
+            }
+            
+            // Banner aktualisieren
+            const winnerBanner = document.querySelector('.winner-banner');
+            winnerBanner.innerHTML = `
+                <h2>Wahlergebnis ${gameState.currentYear}</h2>
+                <h3>${gameState.partyNames[winner]} wird stärkste Kraft mit ${gameState.electionResults[winner]}%</h3>
+            `;
+            
+            // Ergebnisse aktualisieren
+            const pollBars = document.querySelectorAll('.election-results .poll-bar');
+            let partyIndex = 0;
+            for (const party in gameState.electionResults) {
+                if (pollBars[partyIndex]) {
+                    const progressBar = pollBars[partyIndex].querySelector('.progress-bar');
+                    const percentage = pollBars[partyIndex].querySelector('.poll-percentage');
+                    
+                    progressBar.style.width = gameState.electionResults[party] + '%';
+                    percentage.textContent = gameState.electionResults[party] + '%';
+                }
+                partyIndex++;
+            }
+            
+            // Koalitionsoptionen generieren
+            const coalitionOptions = document.querySelector('.coalition-options');
+            coalitionOptions.innerHTML = '';
+            
+            // Mögliche Koalitionen berechnen
+            const viableCoalitions = calculateCoalitions();
+            
+            // Gruppieren nach Regierung und Opposition
+            const governmentCoalitions = viableCoalitions.filter(c => c.playerInGovernment);
+            const oppositionCoalitions = viableCoalitions.filter(c => !c.playerInGovernment);
+            
+            // Header für Regierungsoptionen
+            if (governmentCoalitions.length > 0) {
+                coalitionOptions.innerHTML += `<h4>Koalitionsoptionen für Regierungsbeteiligung</h4>`;
+            }
+            
+            // Regierungskoalitionen anzeigen
+            governmentCoalitions.forEach(coalition => {
+                const coalitionOption = document.createElement('div');
+                coalitionOption.className = 'coalition-option';
+                
+                const parties = coalition.parties.map(p => gameState.partyNames[p]).join(' + ');
+                const total = coalition.total.toFixed(1);
+                const leaderText = coalition.playerIsLeader ? 
+                    '<span class="leader-badge">Du bist Kanzler</span>' : 
+                    (coalition.leader ? `<span>Geführt von ${gameState.partyNames[coalition.leader]}</span>` : '');
+                
+                coalitionOption.innerHTML = `
+                    <div class="coalition-header">
+                        <h4>${coalition.name} (${parties})</h4>
+                        ${leaderText}
+                    </div>
+                    <p>${total}% der Stimmen - ${coalition.description}</p>
+                `;
+                
+                // Speichern der Koalition für die spätere Auswahl
+                coalitionOption._coalition = coalition;
+                
+                coalitionOption.addEventListener('click', () => {
+                    // Vorherige Auswahl entfernen
+                    document.querySelectorAll('.coalition-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Neue Auswahl markieren
+                    coalitionOption.classList.add('selected');
+                    
+                    // Koalition im Spielstatus speichern
+                    gameState.selectedCoalition = coalition;
+                });
+                
+                coalitionOptions.appendChild(coalitionOption);
+            });
+            
+            // Header für Oppositionsoptionen
+            if (oppositionCoalitions.length > 0) {
+                coalitionOptions.innerHTML += `<h4>Opposition</h4>`;
+                
+                // Oppositionskoalitionen anzeigen
+                oppositionCoalitions.forEach(coalition => {
+                    const coalitionOption = document.createElement('div');
+                    coalitionOption.className = 'coalition-option opposition';
+                    
+                    const parties = coalition.parties.map(p => gameState.partyNames[p]).join(' + ');
+                    const total = coalition.total.toFixed(1);
+                    
+                    coalitionOption.innerHTML = `
+                        <div class="coalition-header">
+                            <h4>${coalition.name} (${parties})</h4>
+                        </div>
+                        <p>${total}% der Stimmen - ${coalition.description}</p>
+                    `;
+                    
+                    // Speichern der Koalition für die spätere Auswahl
+                    coalitionOption._coalition = coalition;
+                    
+                    coalitionOption.addEventListener('click', () => {
+                        // Vorherige Auswahl entfernen
+                        document.querySelectorAll('.coalition-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        
+                        // Neue Auswahl markieren
+                        coalitionOption.classList.add('selected');
+                        
+                        // Koalition im Spielstatus speichern
+                        gameState.selectedCoalition = coalition;
+                    });
+                    
+                    coalitionOptions.appendChild(coalitionOption);
+                });
+            }
+            
+            // Log-Eintrag
+            addLogEntry(`Die Bundestagswahl ${gameState.currentYear} ist beendet. ${gameState.partyNames[winner]} wurde mit ${gameState.electionResults[winner]}% stärkste Kraft.`, true);
+        }
+        
+        function continueAfterElection() {
+            if (!gameState.selectedCoalition) {
+                showNotification('Bitte wähle erst eine Koalition aus!', 'warning');
+                return;
+            }
+            
+            continueToNextElection(gameState.selectedCoalition);
+        }
+        
+        function continueToNextElection(coalition) {
+            // Modal schließen
+            document.getElementById('election-modal').style.display = 'none';
+            
+            // Zeit bis zur nächsten Wahl zurücksetzen
+            gameState.monthsToElection = 48; // 4 Jahre = 48 Monate
+            
+            // Nächstes Wahljahr setzen
+            gameState.currentYear += 4;
+            
+            // Speichern, ob der Spieler in der Regierung ist
+            gameState.isInGovernment = coalition.playerInGovernment;
+            gameState.isChancellor = coalition.playerIsLeader;
+            
+            // Ressourcen anpassen basierend auf Koalition und Regierungsbeteiligung
+            const popularity = coalition.total / 100; // 0-1 basierend auf Koalitionsstärke
+            
+            if (coalition.playerInGovernment) {
+                // In der Regierung - mehr Ressourcen, aber auch mehr Verantwortung
+                gameState.resources.budget = 2500000 + (1000000 * popularity);
+                gameState.resources.donations = 120000 + (60000 * popularity);
+                
+                // Als Kanzler noch mehr Einfluss
+                if (coalition.playerIsLeader) {
+                    gameState.resources.budget += 500000;
+                    gameState.resources.donations += 30000;
+                }
+            } else {
+                // In der Opposition - weniger Ressourcen, aber weniger Verantwortung
+                gameState.resources.budget = 1500000 + (500000 * popularity);
+                gameState.resources.donations = 80000 + (30000 * popularity);
+            }
+            
+            // Kampagne zählen
+            gameState.currentCampaign++;
+            
+            // Log-Eintrag für Regierung oder Opposition
+            if (coalition.playerInGovernment) {
+                if (coalition.playerIsLeader) {
+                    addLogEntry(`Du bist Kanzler in einer ${coalition.name}. Der nächste Wahlkampf beginnt!`, true);
+                } else {
+                    addLogEntry(`Deine Partei ist Teil der Regierung in einer ${coalition.name}. Der nächste Wahlkampf beginnt!`, true);
+                }
+            } else {
+                addLogEntry(`Deine Partei ist in der Opposition. Die Regierung besteht aus ${coalition.parties.map(p => gameState.partyNames[p]).join(', ')}. Der nächste Wahlkampf beginnt!`, true);
+            }
+            
+            // Zurücksetzen der ausgewählten Koalition
+            gameState.selectedCoalition = null;
+            
+            // Prüfen, ob Spiel zu Ende ist
+            if (gameState.currentCampaign > gameState.maxCampaigns) {
+                endGame(coalition);
+            } else {
+                // UI aktualisieren
+                updateUI();
+                // Status zurücksetzen für nächsten Monat
+                gameState.isProcessingMonth = false;
+                document.getElementById('next-turn').disabled = false;
+            }
+        }
+        
+        function endGame(coalition) {
+            // Spiel beenden
+            document.getElementById('election-modal').style.display = 'none';
+            
+            // Ergebnis-Screen anzeigen
+            document.getElementById('game-screen').style.display = 'none';
+            
+            // Festlegen, ob man in der Regierung oder Opposition war
+            const governmentStatus = coalition.playerInGovernment ? 
+                (coalition.playerIsLeader ? "als Kanzler" : "als Koalitionspartner") : 
+                "in der Opposition";
+            
+            // Zusammenfassung erstellen
+            document.getElementById('start-screen').style.display = 'block';
+            document.getElementById('start-screen').innerHTML = `
+                <div class="panel">
+                    <h2>Spielzusammenfassung</h2>
+                    <h3>${gameState.partyName}</h3>
+                    
+                    <p>Du hast ${gameState.maxCampaigns} Wahlkämpfe geführt und am Ende ${governmentStatus} in einer ${coalition.name} mit ${coalition.total.toFixed(1)}% der Stimmen agiert.</p>
+                    
+                    <h4>Deine politischen Positionen am Ende:</h4>
+                    <ul>
+                        <li><strong>Wirtschaft:</strong> ${getPositionText('economy', gameState.issues.economy.position)}</li>
+                        <li><strong>Umwelt:</strong> ${getPositionText('environment', gameState.issues.environment.position)}</li>
+                        <li><strong>Soziales:</strong> ${getPositionText('social', gameState.issues.social.position)}</li>
+                        <li><strong>Sicherheit:</strong> ${getPositionText('security', gameState.issues.security.position)}</li>
+                        <li><strong>Migration:</strong> ${getPositionText('migration', gameState.issues.migration.position)}</li>
+                        <li><strong>Digitalisierung:</strong> ${getPositionText('digital', gameState.issues.digital.position)}</li>
+                    </ul>
+                    
+                    <h4>Ressourcen am Ende:</h4>
+                    <ul>
+                        <li><strong>Budget:</strong> ${formatMoney(gameState.resources.budget)}</li>
+                        <li><strong>Mitglieder:</strong> ${formatNumber(gameState.resources.members)}</li>
+                        <li><strong>Umfragewerte:</strong> ${gameState.resources.polls.toFixed(1)}%</li>
+                    </ul>
+                    
+                    <button class="action-btn" onclick="location.reload()" style="margin-top: 1.5rem; width: 100%;">Neues Spiel starten</button>
+                </div>
+            `;
+        }
+        
+        function getPositionText(issue, value) {
+            const positions = {
+                economy: {
+                    '-2': 'Stark interventionistisch',
+                    '-1': 'Eher interventionistisch',
+                    '0': 'Ausgewogen',
+                    '1': 'Eher marktliberal',
+                    '2': 'Stark marktliberal'
+                },
+                environment: {
+                    '-2': 'Wirtschaft vor Umwelt',
+                    '-1': 'Eher wirtschaftsorientiert',
+                    '0': 'Ausgewogen',
+                    '1': 'Eher umweltorientiert',
+                    '2': 'Starker Umweltschutz'
+                },
+                social: {
+                    '-2': 'Starke Eigenverantwortung',
+                    '-1': 'Eher Eigenverantwortung',
+                    '0': 'Ausgewogen',
+                    '1': 'Eher sozial',
+                    '2': 'Stark sozial'
+                },
+                security: {
+                    '-2': 'Freiheit vor Sicherheit',
+                    '-1': 'Eher freiheitsorientiert',
+                    '0': 'Ausgewogen',
+                    '1': 'Eher sicherheitsorientiert',
+                    '2': 'Sicherheit vor Freiheit'
+                },
+                migration: {
+                    '-2': 'Strenge Beschränkung',
+                    '-1': 'Eher restriktiv',
+                    '0': 'Ausgewogen',
+                    '1': 'Eher offen',
+                    '2': 'Sehr offen'
+                },
+                digital: {
+                    '-2': 'Sehr zurückhaltend',
+                    '-1': 'Eher zurückhaltend',
+                    '0': 'Ausgewogen',
+                    '1': 'Eher fortschrittlich',
+                    '2': 'Sehr fortschrittlich'
+                }
+            };
+            
+            return positions[issue][value.toString()];
+        }
+        
+        // Initialisierung beim Laden der Seite
+        window.addEventListener('load', function() {
+            // Startknopf standardmäßig deaktivieren, bis eine Partei ausgewählt wird
+            document.getElementById('start-game').disabled = true;
+        });
+        // Diese Funktionen und Erweiterungen fügen negative Ereignisse und KI-Gegner hinzu
+
+// Neue Datenstruktur für die KI-Parteien
+const aiParties = {
+  cdu: { aggression: 0.5, focus: ["economy", "security"] },
+  spd: { aggression: 0.4, focus: ["social", "economy"] },
+  gruene: { aggression: 0.4, focus: ["environment", "migration"] },
+  fdp: { aggression: 0.5, focus: ["economy", "digital"] },
+  linke: { aggression: 0.6, focus: ["social", "migration"] },
+  afd: { aggression: 0.7, focus: ["migration", "security"] }
+};
+
+// Neue negative Ereignisse ergänzen
+const negativeEvents = [
+  {
+    id: "party-scandal",
+    title: "Partei-Skandal",
+    description: "Ein hochrangiges Mitglied deiner Partei wurde in einen Skandal verwickelt. Die Medien berichten intensiv.",
+    effect: { polls: -2.5, media: -1 }
+  },
+  {
+    id: "policy-failure",
+    title: "Politische Fehleinschätzung",
+    description: "Eine deiner Positionen wird von der Bevölkerung stark kritisiert.",
+    effect: { polls: -1.8 }
+  },
+  {
+    id: "protest",
+    title: "Proteste gegen deine Partei",
+    description: "Verschiedene Gruppen demonstrieren gegen eine deiner Positionen.",
+    effect: { polls: -1.5, media: 1 }
+  },
+  {
+    id: "opponent-surge",
+    title: "Gegner gewinnt an Beliebtheit",
+    description: "Eine konkurrierende Partei hat eine erfolgreiche Kampagne gestartet.",
+    getEffect: function() {
+      const opponent = Object.keys(gameState.polls)
+        .filter(p => p !== gameState.selectedParty)
+        .sort(() => 0.5 - Math.random())[0];
+      
+      const effect = { polls: {} };
+      effect.polls[opponent] = 2.5;
+      effect.polls[gameState.selectedParty] = -1.0;
+      
+      return {
+        effect: effect,
+        description: `${gameState.partyNames[opponent]} hat durch eine erfolgreiche Kampagne Stimmen gewonnen.`
+      };
+    }
+  },
+  {
+    id: "economic-downturn",
+    title: "Wirtschaftlicher Abschwung",
+    description: "Die Wirtschaft schwächelt und die Wähler geben den regierenden Parteien die Schuld.",
+    effect: function() {
+      if (gameState.isInGovernment) {
+        return { polls: -2.0, economy: -1 };
+      } else {
+        return { polls: 1.0, economy: -1 };
+      }
+    }
+  },
+  {
+    id: "media-bias",
+    title: "Negative Medienberichterstattung",
+    description: "Einige Medien berichten negativ über deine Partei.",
+    effect: { polls: -1.2, media: -1 }
+  }
+];
+
+// Funktion für die KI-Parteien-Aktivitäten
+function simulateAIPartyActions() {
+  // Nur für Parteien außer der Spielerpartei
+  const otherParties = Object.keys(aiParties).filter(p => p !== gameState.selectedParty);
+  
+  // Zufällige Anzahl von Aktionen basierend auf der Spielschwierigkeit
+  const actionsCount = {
+    "easy": 1,
+    "medium": 2,
+    "hard": 3
+  }[gameState.difficulty];
+  
+  // Ausgewählte Parteien, die in diesem Monat handeln
+  const activeParties = otherParties
+    .sort(() => 0.5 - Math.random())
+    .slice(0, actionsCount);
+  
+  // Für jede aktive Partei eine Aktion durchführen
+  activeParties.forEach(party => {
+    // Aggression bestimmt, ob die Partei angreift oder eigene Positionen stärkt
+    const isAttack = Math.random() < aiParties[party].aggression;
+    
+    if (isAttack) {
+      // Angriff auf den Spieler
+      const attackStrength = 0.3 + Math.random() * 0.7; // 0.3 bis 1.0
+      gameState.polls[gameState.selectedParty] -= attackStrength;
+      gameState.polls[party] += attackStrength * 0.7;
+      
+      // Log-Eintrag
+      addLogEntry(`${gameState.partyNames[party]} hat eine Negativkampagne gegen deine Partei gestartet und gewinnt ${(attackStrength * 0.7).toFixed(1)}% Wähler.`);
+    } else {
+      // Eigene Position stärken
+      const gainStrength = 0.2 + Math.random() * 0.6; // 0.2 bis 0.8
+      gameState.polls[party] += gainStrength;
+      
+      // Etwas von anderen Parteien nehmen, einschließlich des Spielers
+      const lossPerParty = gainStrength / (Object.keys(gameState.polls).length - 1);
+      for (const otherParty in gameState.polls) {
+        if (otherParty !== party) {
+          gameState.polls[otherParty] -= lossPerParty;
+        }
+      }
+      
+      // Log-Eintrag
+      addLogEntry(`${gameState.partyNames[party]} gewinnt durch Kampagnenarbeit ${gainStrength.toFixed(1)}% an Zustimmung.`);
+    }
+    
+    // Grenzen sicherstellen (0-60%)
+    for (const p in gameState.polls) {
+      gameState.polls[p] = Math.max(0, Math.min(60, gameState.polls[p]));
+    }
+    
+    // Spieler-Umfragewert aktualisieren
+    gameState.resources.polls = gameState.polls[gameState.selectedParty];
+  });
+}
+
+// Funktion für zufällige negative Ereignisse
+function triggerRandomNegativeEvent() {
+  // Wahrscheinlichkeit für negative Ereignisse (höhere Schwierigkeit = mehr Ereignisse)
+  const baseProb = {
+    "easy": 0.15,
+    "medium": 0.25,
+    "hard": 0.35
+  }[gameState.difficulty];
+  
+  // Zufällige Entscheidung, ob ein negatives Ereignis auftritt
+  if (Math.random() < baseProb) {
+    // Zufälliges Ereignis auswählen
+    const eventIndex = Math.floor(Math.random() * negativeEvents.length);
+    const randomEvent = negativeEvents[eventIndex];
+    
+    // Effekt berechnen (falls dynamisch)
+    let effect = randomEvent.effect;
+    let description = randomEvent.description;
+    
+    if (typeof effect === 'function') {
+      effect = effect();
+    }
+    
+    if (randomEvent.getEffect) {
+      const result = randomEvent.getEffect();
+      effect = result.effect;
+      description = result.description;
+    }
+    
+    // Effekte anwenden
+    applyEffects(effect);
+    
+    // Log-Eintrag
+    addLogEntry(`Negatives Ereignis: ${randomEvent.title} - ${description}`, true);
+    
+    // Benachrichtigung
+    showNotification(`${randomEvent.title}: ${description}`, 'warning');
+    
+    // UI aktualisieren
+    updateUI();
+  }
+}
+
+// Anpassen der nextTurn Funktion, um KI-Aktionen und negative Ereignisse einzubinden
+function nextTurn() {
+  // Verhindert, dass der Button mehrfach geklickt wird
+  if (gameState.isProcessingMonth) return;
+  
+  // Status setzen
+  gameState.isProcessingMonth = true;
+  document.getElementById('next-turn').disabled = true;
+  
+  // Zeit fortschreiten lassen
+  gameState.monthsToElection--;
+  gameState.currentMonth++;
+  
+  if (gameState.currentMonth > 12) {
+    gameState.currentMonth = 1;
+    gameState.currentYear++;
+  }
+  
+  // Monatliche Ressourcen aktualisieren
+  gameState.resources.budget += gameState.resources.donations;
+  
+  // UI aktualisieren
+  updateUI();
+  
+  // Log-Eintrag
+  addLogEntry(`Neuer Monat: ${getMonthName(gameState.currentMonth)} ${gameState.currentYear}. Noch ${gameState.monthsToElection} Monate bis zur Wahl.`);
+  
+  // KI-Parteien handeln lassen
+  simulateAIPartyActions();
+  
+  // Zufällige negative Ereignisse
+  triggerRandomNegativeEvent();
+  
+  // Zufälliges (normales) Ereignis mit Verzögerung
+  const eventDelay = Math.random() < getEventProbability() ? 500 : 0;
+  
+  setTimeout(() => {
+    // Wahlsimulation
+    if (gameState.monthsToElection === 0) {
+      simulateElection();
+      showElectionResults();
+    } else {
+      // Zufälliges Ereignis anzeigen wenn nötig
+      if (eventDelay > 0) {
+        triggerRandomEvent();
+      }
+      
+      // Status zurücksetzen
+      gameState.isProcessingMonth = false;
+      document.getElementById('next-turn').disabled = false;
+    }
+  }, eventDelay);
+}
+
+// Verbesserte Koalitionsauswahl mit onClick
+function showElectionResults() {
+  // Election Modal anzeigen
+  document.getElementById('election-modal').style.display = 'flex';
+  
+  // Sieger ermitteln
+  let winner = "";
+  let highestVote = 0;
+  
+  for (const party in gameState.electionResults) {
+    if (gameState.electionResults[party] > highestVote) {
+      highestVote = gameState.electionResults[party];
+      winner = party;
+    }
+  }
+  
+  // Banner aktualisieren
+  const winnerBanner = document.querySelector('.winner-banner');
+  winnerBanner.innerHTML = `
+    <h2>Wahlergebnis ${gameState.currentYear}</h2>
+    <h3>${gameState.partyNames[winner]} wird stärkste Kraft mit ${gameState.electionResults[winner]}%</h3>
+  `;
+  
+  // Ergebnisse aktualisieren
+  const pollBars = document.querySelectorAll('.election-results .poll-bar');
+  let partyIndex = 0;
+  for (const party in gameState.electionResults) {
+    if (pollBars[partyIndex]) {
+      const progressBar = pollBars[partyIndex].querySelector('.progress-bar');
+      const percentage = pollBars[partyIndex].querySelector('.poll-percentage');
+      
+      progressBar.style.width = gameState.electionResults[party] + '%';
+      percentage.textContent = gameState.electionResults[party] + '%';
+    }
+    partyIndex++;
+  }
+  
+  // Koalitionsoptionen generieren
+  const coalitionOptions = document.querySelector('.coalition-options');
+  coalitionOptions.innerHTML = '';
+  
+  // Mögliche Koalitionen berechnen
+  const viableCoalitions = calculateCoalitions();
+  
+  // Gruppieren nach Regierung und Opposition
+  const governmentCoalitions = viableCoalitions.filter(c => c.playerInGovernment);
+  const oppositionCoalitions = viableCoalitions.filter(c => !c.playerInGovernment);
+  
+  // Header für Regierungsoptionen
+  if (governmentCoalitions.length > 0) {
+    coalitionOptions.innerHTML += `<h4>Koalitionsoptionen für Regierungsbeteiligung</h4>`;
+  }
+  
+  // Regierungskoalitionen anzeigen
+  let coalitionHtml = '';
+  governmentCoalitions.forEach((coalition, index) => {
+    const parties = coalition.parties.map(p => gameState.partyNames[p]).join(' + ');
+    const total = coalition.total.toFixed(1);
+    const leaderText = coalition.playerIsLeader ? 
+      '<span class="leader-badge">Du bist Kanzler</span>' : 
+      (coalition.leader ? `<span>Geführt von ${gameState.partyNames[coalition.leader]}</span>` : '');
+    
+    coalitionHtml += `
+      <div class="coalition-option" onclick="selectCoalition(${index}, true)">
+        <div class="coalition-header">
+          <h4>${coalition.name} (${parties})</h4>
+          ${leaderText}
+        </div>
+        <p>${total}% der Stimmen - ${coalition.description}</p>
+      </div>
+    `;
+  });
+  
+  // Header für Oppositionsoptionen
+  if (oppositionCoalitions.length > 0) {
+    coalitionHtml += `<h4>Opposition</h4>`;
+    
+    // Oppositionskoalitionen anzeigen
+    oppositionCoalitions.forEach((coalition, index) => {
+      const parties = coalition.parties.map(p => gameState.partyNames[p]).join(' + ');
+      const total = coalition.total.toFixed(1);
+      
+      coalitionHtml += `
+        <div class="coalition-option opposition" onclick="selectCoalition(${index}, false)">
+          <div class="coalition-header">
+            <h4>${coalition.name} (${parties})</h4>
+          </div>
+          <p>${total}% der Stimmen - ${coalition.description}</p>
+        </div>
+      `;
+    });
+  }
+  
+  coalitionOptions.innerHTML = coalitionHtml;
+  
+  // Alle berechneten Koalitionen im Spielzustand speichern
+  gameState.governmentCoalitions = governmentCoalitions;
+  gameState.oppositionCoalitions = oppositionCoalitions;
+  
+  // Log-Eintrag
+  addLogEntry(`Die Bundestagswahl ${gameState.currentYear} ist beendet. ${gameState.partyNames[winner]} wurde mit ${gameState.electionResults[winner]}% stärkste Kraft.`, true);
+}
+
+// Funktion zum Auswählen einer Koalition
+function selectCoalition(index, isGovernment) {
+  // Bisherige Auswahl entfernen
+  document.querySelectorAll('.coalition-option').forEach(opt => {
+    opt.classList.remove('selected');
+  });
+  
+  // Die Liste der entsprechenden Koalitionsoptionen
+  const coalitionsList = isGovernment ? gameState.governmentCoalitions : gameState.oppositionCoalitions;
+  
+  // Die ausgewählte Koalition
+  const coalition = coalitionsList[index];
+  
+  // Die ausgewählte Option markieren
+  const selector = isGovernment 
+    ? `.coalition-option:not(.opposition):nth-of-type(${index + 1})` 
+    : `.coalition-option.opposition:nth-of-type(${index + 1})`;
+    
+  const selectedOption = document.querySelector(selector);
+  if (selectedOption) {
+    selectedOption.classList.add('selected');
+  }
+  
+  // Koalition im Spielzustand speichern
+  gameState.selectedCoalition = coalition;
+}
+
+// Diese Funktion sollte im HTML eingebunden werden
+// <script>
+//   function selectCoalition(index, isGovernment) {
+//     /* ... der Code von oben ... */
+//   }
+// </script>
+    </script>
+</body>
+</html>
