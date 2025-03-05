@@ -46,10 +46,17 @@ function initBundeslaender() {
     // Bundesländer-Karten mit zusätzlichen Attributen versehen
     const stateElements = document.querySelectorAll('.state');
     
-    stateElements.forEach((stateElement, index) => {
-        if (index < bundeslaender.length) {
-            const state = bundeslaender[index];
-            
+    stateElements.forEach((stateElement) => {
+        // Den Namen des Bundeslandes aus dem HTML-Element extrahieren
+        const stateNameElement = stateElement.querySelector('.state-name');
+        if (!stateNameElement) return;
+        
+        const stateName = stateNameElement.textContent;
+        
+        // Das entsprechende Bundesland in der Datenstruktur finden
+        const state = bundeslaender.find(land => land.name === stateName);
+        
+        if (state) {
             // Attribute setzen
             stateElement.setAttribute('data-name', state.name);
             stateElement.setAttribute('data-region', state.region);
@@ -186,6 +193,44 @@ function resetStateFocus() {
     showNotification('Fokus zurückgesetzt', 'info');
 }
 
+// Umfragewerte basierend auf Zustimmung in Bundesländern berechnen
+function calculateNationalPolls() {
+    const stateElements = document.querySelectorAll('.state');
+    let totalPopulation = 0;
+    let weightedSupport = 0;
+    
+    // Gewichteten Durchschnitt der Zustimmung berechnen, basierend auf Bevölkerungsgröße
+    stateElements.forEach(stateElement => {
+        const population = parseInt(stateElement.getAttribute('data-population'));
+        const support = parseInt(stateElement.getAttribute('data-support'));
+        
+        totalPopulation += population;
+        weightedSupport += population * support;
+    });
+    
+    // Durchschnittliche Zustimmung berechnen
+    const nationalSupport = weightedSupport / totalPopulation;
+    
+    return nationalSupport;
+}
+
+// Aktualisiert die Umfragewerte basierend auf den Bundesländern
+function updateNationalPolls() {
+    // Berechnet den nationalen Umfragewert aus den Bundesländern
+    const nationalSupport = calculateNationalPolls();
+    
+    // Nationalen Umfragewert aktualisieren (sanfte Anpassung, um große Sprünge zu vermeiden)
+    const currentPoll = gameState.polls[gameState.selectedParty];
+    const newPoll = currentPoll * 0.7 + nationalSupport * 0.3; // Gewichtete Mischung aus altem und neuem Wert
+    
+    // Umfragewerte aktualisieren
+    gameState.polls[gameState.selectedParty] = newPoll;
+    gameState.resources.polls = newPoll;
+    
+    // UI aktualisieren
+    updateUI();
+}
+
 // Regional-Kampagnen-Modal anzeigen
 function showRegionalCampaignModal() {
     const modal = document.getElementById('regional-campaign-modal');
@@ -319,6 +364,12 @@ function startRegionalCampaign() {
             // Neue Zustimmung setzen
             stateElement.setAttribute('data-support', currentSupport);
             
+            // Bundesländer-Daten aktualisieren
+            const bundesland = bundeslaender.find(land => land.name === stateName);
+            if (bundesland) {
+                bundesland.support = currentSupport;
+            }
+            
             // Text in der Karte aktualisieren
             const stateValueElement = stateElement.querySelector('.state-value');
             if (stateValueElement) {
@@ -333,13 +384,8 @@ function startRegionalCampaign() {
         }
     });
     
-    // Gesamte Umfragewerte leicht erhöhen
-    const supportBoost = (campaignConfig.supportBoost * campaignStates.length) / 10;
-    gameState.polls[gameState.selectedParty] += supportBoost * 0.1;
-    gameState.resources.polls += supportBoost * 0.1;
-    
-    // UI aktualisieren
-    updateUI();
+    // Nationalen Umfragewert aktualisieren
+    updateNationalPolls();
     
     // Log-Eintrag
     const campaignTypeNames = {
@@ -361,6 +407,11 @@ function startRegionalCampaign() {
 document.addEventListener('DOMContentLoaded', function() {
     // Verzögerung für die Initialisierung, um sicherzustellen, dass die Bundesländer-Karten bereits geladen sind
     setTimeout(initBundeslaender, 500);
+    
+    // Anfängliche nationale Umfragewerte berechnen
+    setTimeout(() => {
+        updateNationalPolls();
+    }, 1000);
     
     // Event-Listener für die Änderung des Kampagnentyps
     document.getElementById('campaign-type').addEventListener('change', updateRegionalCampaignCost);
