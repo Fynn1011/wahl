@@ -6,6 +6,7 @@
     <title>Deutscher Wahlkampf-Simulator</title>
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="staff.css">
+    <link rel="stylesheet" href="bundeslaender.css">
 </head>
 <body>
     <header>
@@ -345,6 +346,68 @@
                         
                         <div class="tab-content" data-tab="regions">
                             <h3>Bundesländer</h3>
+<!-- Füge diesen Code direkt unter der <h3>Bundesländer</h3> im regions tab-content Bereich ein -->
+<div class="states-control-panel">
+    <div class="states-filters">
+        <select id="states-region-filter" onchange="filterStates()">
+            <option value="all">Alle Bundesländer</option>
+            <option value="east">Ostdeutschland (Neue Bundesländer)</option>
+            <option value="west">Westdeutschland (Alte Bundesländer)</option>
+        </select>
+        
+        <select id="states-sort" onchange="sortStates()">
+            <option value="name">Nach Name</option>
+            <option value="support-desc">Höchste Zustimmung</option>
+            <option value="support-asc">Niedrigste Zustimmung</option>
+            <option value="population">Nach Einwohnern</option>
+        </select>
+    </div>
+    
+    <div class="states-actions">
+        <button class="action-btn small-btn" onclick="showRegionalCampaignModal()">Regionale Kampagne</button>
+        <button class="action-btn small-btn" onclick="resetStateFocus()">Fokus zurücksetzen</button>
+    </div>
+</div>
+
+<!-- Container für die Bundesländer-Karten (Bestehender Code) -->
+<div class="states-map">
+    <!-- Hier werden die Bundesländer-Karten eingefügt -->
+</div>
+
+<!-- Modal für regionale Kampagnen -->
+<div id="regional-campaign-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Regionale Kampagne planen</h3>
+            <span class="close-btn" onclick="closeRegionalCampaignModal()">&times;</span>
+        </div>
+        <div id="regional-campaign-content">
+            <p>Wähle die Bundesländer aus, in denen du eine regionale Kampagne durchführen möchtest:</p>
+            
+            <div class="state-selection">
+                <!-- Wird dynamisch gefüllt -->
+            </div>
+            
+            <div class="campaign-cost">
+                <p>Kosten: <span id="regional-campaign-cost">100.000 €</span></p>
+            </div>
+            
+            <div class="campaign-options">
+                <h4>Kampagnenart:</h4>
+                <select id="campaign-type">
+                    <option value="standard">Standard-Kampagne (+1,5% in ausgewählten Ländern)</option>
+                    <option value="intensive">Intensive Kampagne (+3% in ausgewählten Ländern)</option>
+                    <option value="focused">Fokussierte Kampagne (+4,5% in ausgewählten Ländern)</option>
+                </select>
+            </div>
+            
+            <div style="margin-top: 1rem; display: flex; justify-content: space-between;">
+                <button class="action-btn" onclick="closeRegionalCampaignModal()">Abbrechen</button>
+                <button class="action-btn" onclick="startRegionalCampaign()">Kampagne starten</button>
+            </div>
+        </div>
+    </div>
+</div>
                             <p>Verfolge deine Umfragewerte in den verschiedenen Bundesländern und plane regionale Kampagnen.</p>
                             
                             <div class="states-map">
@@ -596,5 +659,6 @@
     </main>
     <script src="index.js"></script>
     <script src="staff.js"></script>
+    <script src="bundeslaender.js"></script>
 </body>
 </html>
